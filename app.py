@@ -1,13 +1,10 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
-import chromadb
 from llama_index.core import VectorStoreIndex, StorageContext
-from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.openai import OpenAI
 from llama_index.core.query_engine import CitationQueryEngine
-import time
 from llama_index.vector_stores.supabase import SupabaseVectorStore
 
 # Load environment variables
