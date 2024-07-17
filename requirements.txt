@@ -1,0 +1,8 @@
+llama-index
+python-dotenv
+transformers
+torch
+accelerate
+llama-index-llms-huggingface
+llama-index-llms-openai
+llama-index-vector-stores-supabase
