@@ -4,5 +4,8 @@ transformers
 torch
 accelerate
 llama-index-llms-huggingface
+llama-index-embeddings-huggingface
 llama-index-llms-openai
 llama-index-vector-stores-supabase
+llama-index-embeddings-instructor
+sentence-transformers
