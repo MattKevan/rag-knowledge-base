@@ -54,7 +54,7 @@ def local_css():
     
 # Streamlit app
 def main():
-    st.set_page_config(page_title="Chat with the Streamlit docs, powered by LlamaIndex", page_icon="🦙", layout="centered", initial_sidebar_state="auto", menu_items=None)
+    st.set_page_config(page_title="HST knowledge hub", page_icon="🔎", layout="centered", initial_sidebar_state="auto", menu_items=None)
 
     st.title("Knowledge hub")
 
