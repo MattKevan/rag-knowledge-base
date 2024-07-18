@@ -92,7 +92,7 @@ def main():
         st.header("Standard query")
         st.markdown("Get an answer to your question based on site content. Specific questions will give better results than more general ones.")
 
-        query = st.text_input("What would you like to know?", key="standard_query")
+        query = st.text_input("Ask a question", key="standard_query")
         if query:
             query_engine = index.as_query_engine()
             response = query_engine.query(query)
@@ -102,7 +102,7 @@ def main():
     with tab2:
         st.header("Complex query")
         st.markdown("Breaks your question into one or more sub-questions to generate a deeper and more nuanced answer. Good for comparisons or asking more than one question at once.")
-        query = st.text_input("What would you like to know?", key="subquestion_query")
+        query = st.text_input("Ask a question", key="subquestion_query")
         if query:
             # Create the base query engine
             base_query_engine = index.as_query_engine()
@@ -141,7 +141,7 @@ def main():
         st.header("Search with citations")
         st.markdown("Shows the sources it uses to generate the answer, linking to the specific pages if possible. Good for finding further information or verifying responses.")
 
-        query = st.text_input("What would you like to know?", key="citations_query")
+        query = st.text_input("Ask a question", key="citations_query")
         if query:
             citation_query_engine = CitationQueryEngine.from_args(
                 index,
