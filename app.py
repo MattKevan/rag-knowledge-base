@@ -6,6 +6,12 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.openai import OpenAI
 from llama_index.core.query_engine import CitationQueryEngine
 from llama_index.vector_stores.supabase import SupabaseVectorStore
+from llama_index.core.tools import QueryEngineTool, ToolMetadata
+from llama_index.core.query_engine import SubQuestionQueryEngine
+from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
+from llama_index.core import Settings
+from llama_index.core.callbacks import CBEventType, EventPayload
+import json
 
 # Load environment variables
 load_dotenv()
@@ -22,14 +28,31 @@ def initialize_components():
         collection_name='knowledgebase'
     )
     
-    embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
-    llm = OpenAI(model="gpt-3.5-turbo", api_key=os.getenv('OPENAI_API_KEY'))
+    llama_debug = LlamaDebugHandler(print_trace_on_end=True)
+    callback_manager = CallbackManager([llama_debug])
+    
+    Settings.callback_manager = callback_manager
     
     index = VectorStoreIndex.from_vector_store(
         vector_store
     )
     
-    return index
+    return index, llama_debug
+
+def extract_url_from_metadata(metadata):
+    try:
+        node_content = json.loads(metadata.get('_node_content', '{}'))
+        url = node_content.get('metadata', {}).get('URL')
+        return url if url else 'No URL available'
+    except json.JSONDecodeError:
+        return 'Error parsing metadata'
+    
+def clear_chat_history():
+    st.session_state.messages = [
+        {"role": "assistant", "content": "How can I help you today?"}
+    ]
+    st.session_state.chat_engine = None
+
 # Custom CSS for sticky chat input
 def local_css():
     st.markdown("""
@@ -57,16 +80,19 @@ def main():
     st.set_page_config(page_title="HST knowledge hub", page_icon="🔎", layout="centered", initial_sidebar_state="auto", menu_items=None)
 
     st.title("Knowledge hub")
+    st.markdown("Answer questions based on public HST site content, including the course catalogue, hub content and help & FAQs.")
 
-    # Initialize components with the 'site' collection
-    index = initialize_components()
+    # Initialize components
+    index, llama_debug = initialize_components()
 
     # Create tabs
-    tab1, tab2, tab3 = st.tabs(["Standard", "Citations", "Chat"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Standard", "Complex", "Citations", "Chat"])
 
     with tab1:
-        st.header("Standard search")
-        query = st.text_input("Enter your question:", key="standard_query")
+        st.header("Standard query")
+        st.markdown("Get an answer to your question based on site content. Specific questions will give better results than more general ones.")
+
+        query = st.text_input("What would you like to know?", key="standard_query")
         if query:
             query_engine = index.as_query_engine()
             response = query_engine.query(query)
@@ -74,8 +100,48 @@ def main():
             st.write(response.response)
 
     with tab2:
+        st.header("Complex query")
+        st.markdown("Breaks your question into one or more sub-questions to generate a deeper and more nuanced answer. Good for comparisons or asking more than one question at once.")
+        query = st.text_input("What would you like to know?", key="subquestion_query")
+        if query:
+            # Create the base query engine
+            base_query_engine = index.as_query_engine()
+
+            # Setup base query engine as tool
+            query_engine_tools = [
+                QueryEngineTool(
+                    query_engine=base_query_engine,
+                    metadata=ToolMetadata(
+                        name="knowledgebase",
+                        description="HST knowledgebase",
+                    ),
+                ),
+            ]
+            
+            sub_question_engine = SubQuestionQueryEngine.from_defaults(
+                query_engine_tools=query_engine_tools,
+                use_async=True,
+            )
+            
+            response = sub_question_engine.query(query)
+            
+            st.markdown("### Response")
+            st.write(response.response)
+            
+            st.markdown("### Sub-Questions and Answers")
+            for i, (start_event, end_event) in enumerate(
+                llama_debug.get_event_pairs(CBEventType.SUB_QUESTION)
+            ):
+                qa_pair = end_event.payload[EventPayload.SUB_QUESTION]
+                st.markdown(f"**Sub Question {i + 1}:** {qa_pair.sub_q.sub_question.strip()}")
+                st.markdown(f"**Answer:** {qa_pair.answer.strip()}")
+                st.markdown("---")
+
+    with tab3:
         st.header("Search with citations")
-        query = st.text_input("Enter your question:", key="citations_query")
+        st.markdown("Shows the sources it uses to generate the answer, linking to the specific pages if possible. Good for finding further information or verifying responses.")
+
+        query = st.text_input("What would you like to know?", key="citations_query")
         if query:
             citation_query_engine = CitationQueryEngine.from_args(
                 index,
@@ -90,10 +156,19 @@ def main():
             for i, source_node in enumerate(response.source_nodes):
                 st.markdown(f"**Source {i + 1}:**")
                 st.markdown(source_node.node.get_content())
+                # Extract and display the URL from metadata
+                url = source_node.node.metadata.get('URL', 'No URL available')
+                if url != 'No link available':
+                    st.markdown(f"[{url}]({url})")
+                else:
+                    st.markdown(url)
                 st.markdown("---")
 
-    with tab3:
+    
+
+    with tab4:
         st.header("Chat interface")
+        st.markdown("Remembers the context of previous messages. Good for going deeper or expanding on subjects.")
         if "messages" not in st.session_state:
             st.session_state.messages = [
                 {"role": "assistant", "content": "How can I help you today?"}
@@ -104,16 +179,16 @@ def main():
                 chat_mode="condense_question", verbose=True, streaming=True
             )
 
-        if prompt := st.chat_input(
-            "Ask a question"
-        ):  # Prompt for user input and save to chat history
+        if prompt := st.chat_input("Ask a question"):
             st.session_state.messages.append({"role": "user", "content": prompt})
-
 
         # Display chat messages
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
+
+        if st.button("Clear Chat"):
+                clear_chat_history()
 
         # If last message is not from assistant, generate a new response
         if st.session_state.messages[-1]["role"] != "assistant":
