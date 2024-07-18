@@ -60,7 +60,7 @@ def main():
     st.set_page_config(page_title="HST knowledge hub", page_icon="🔎", layout="centered", initial_sidebar_state="auto", menu_items=None)
 
     st.title("Knowledge hub")
-    st.markdown("Answer questions based on public HST site content, including the course catalogue, hub content and help topics.")
+    st.markdown("Answer questions using public HST site content as the source, including the course catalogue, hub content and help topics.")
     st.markdown("""
                 <style>
                     .stChatInput {
@@ -81,7 +81,7 @@ def main():
 
     with tab1:
         st.header("Standard query")
-        st.markdown("Get an answer to your question based on site content. Specific questions will give better results than more general ones.")
+        st.markdown("Get an answer to your question from site content. Specific questions will give better results than more general ones.")
 
         query = st.text_input("Ask a question", key="standard_query")
         if query:
@@ -159,14 +159,14 @@ def main():
 
     with tab4:
         st.header("Chat interface")
-        st.markdown("Remembers the context of previous messages. Good for going deeper or expanding on subjects.")
+        st.markdown("Uses the message history to build a memory of the conversation. Good for an interactive approach to going deeper or expanding on subjects.")
         if "messages" not in st.session_state:
             st.session_state.messages = [
                 {"role": "assistant", "content": "How can I help you today?"}
             ]
-        if st.button("Clear Chat"):
+        if st.button("Clear history"):
                 clear_chat_history()
-                
+
         if "chat_engine" not in st.session_state.keys():
             st.session_state.chat_engine = index.as_chat_engine(
                 chat_mode="condense_question", verbose=True, streaming=True
