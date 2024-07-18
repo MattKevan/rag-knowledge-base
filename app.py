@@ -80,7 +80,7 @@ def main():
     st.set_page_config(page_title="HST knowledge hub", page_icon="🔎", layout="centered", initial_sidebar_state="auto", menu_items=None)
 
     st.title("Knowledge hub")
-    st.markdown("Answer questions based on public HST site content, including the course catalogue, hub content and help & FAQs.")
+    st.markdown("Answer questions based on public HST site content, including the course catalogue, hub content and help topics.")
 
     # Initialize components
     index, llama_debug = initialize_components()
