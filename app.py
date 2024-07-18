@@ -53,27 +53,7 @@ def clear_chat_history():
     ]
     st.session_state.chat_engine = None
 
-# Custom CSS for sticky chat input
-def local_css():
-    st.markdown("""
-    <style>
-        .stApp {
-            height: 100vh;
-        }
-        .main {
-            padding-bottom: 100px;
-        }
-        .sticky-chat-input {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 20px;
-            background-color: white;
-            z-index: 100;
-        }
-    </style>
-    """, unsafe_allow_html=True)
+
     
 # Streamlit app
 def main():
@@ -81,7 +61,18 @@ def main():
 
     st.title("Knowledge hub")
     st.markdown("Answer questions based on public HST site content, including the course catalogue, hub content and help topics.")
-
+    st.markdown("""
+                <style>
+                    .stChatInput {
+                        position: fixed;
+                        bottom: 0;
+                        margin: 0 auto;
+                        padding: 30px 0;
+                        background-color: white;
+                        z-index: 100;
+                    }
+                </style>
+                """, unsafe_allow_html=True)
     # Initialize components
     index, llama_debug = initialize_components()
 
@@ -173,7 +164,9 @@ def main():
             st.session_state.messages = [
                 {"role": "assistant", "content": "How can I help you today?"}
             ]
-
+        if st.button("Clear Chat"):
+                clear_chat_history()
+                
         if "chat_engine" not in st.session_state.keys():
             st.session_state.chat_engine = index.as_chat_engine(
                 chat_mode="condense_question", verbose=True, streaming=True
@@ -187,8 +180,7 @@ def main():
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
-        if st.button("Clear Chat"):
-                clear_chat_history()
+
 
         # If last message is not from assistant, generate a new response
         if st.session_state.messages[-1]["role"] != "assistant":
